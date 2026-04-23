@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const os = require('os');
 const amqp = require('amqplib');
+const pool = require('../config/db');
 
 const { executeCodeLocally } = require('../services/execution.service');
 const { determineVerdict } = require('../services/verdict.service');
@@ -19,7 +20,20 @@ const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
 const EXECUTION_QUEUE = process.env.EXECUTION_QUEUE || 'execution.queue';
 const RESULT_TTL_SECONDS = Number(process.env.RESULT_TTL_SECONDS || 300);
 const WORKER_HEARTBEAT_SECONDS = Number(process.env.WORKER_HEARTBEAT_SECONDS || 30);
-const WORKER_ID = process.env.WORKER_ID || `worker-${os.hostname()}`;
+const MAX_RETRIES = Number(process.env.MAX_RETRIES || 3);
+
+async function sendToDLQ(job, retryCount, error) {
+  try {
+    await pool.query(
+      `INSERT INTO dead_letter_queue (submission_id, job_payload, retry_count, max_retries, last_error, worker_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [job.submission_id, JSON.stringify(job), retryCount, MAX_RETRIES, error, WORKER_ID]
+    );
+    console.log(`[${WORKER_ID}] Moved submission ${job.submission_id} to DLQ after ${retryCount} retries`);
+  } catch (err) {
+    console.error(`[${WORKER_ID}] Failed to send job to DLQ:`, err.message);
+  }
+}
 
 async function processJob(channel, msg) {
   const job = JSON.parse(msg.content.toString());
@@ -83,7 +97,21 @@ async function startWorker() {
       await processJob(channel, msg);
     } catch (error) {
       console.error(`[${WORKER_ID}] worker failed:`, error.message);
-      channel.nack(msg, false, true);
+
+      const job = JSON.parse(msg.content.toString());
+      const retryCount = job.retry_count || 0;
+
+      if (retryCount < MAX_RETRIES) {
+        // Requeue for retry
+        console.log(
+          `[${WORKER_ID}] Requeuing submission ${job.submission_id} for retry (${retryCount + 1}/${MAX_RETRIES})`
+        );
+        channel.nack(msg, false, true);
+      } else {
+        // Max retries exceeded - move to DLQ
+        await sendToDLQ(job, retryCount, error.message);
+        channel.ack(msg);
+      }
     }
   });
 }
@@ -91,4 +119,11 @@ async function startWorker() {
 startWorker().catch((error) => {
   console.error('Worker startup failed:', error.message);
   process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log(`[${WORKER_ID}] Received SIGTERM, shutting down gracefully...`);
+  await pool.end();
+  process.exit(0);
 });
