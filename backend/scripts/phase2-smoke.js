@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 const { v4: uuidv4 } = require('uuid');
-const { executeCodeLocally } = require('../../services/execution.service');
-const { determineVerdict } = require('../../services/verdict.service');
+const { executeCodeLocally } = require('../services/execution.service');
+const { determineVerdict } = require('../services/verdict.service');
 
 async function main() {
   const submissionId = uuidv4();
