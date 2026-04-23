@@ -4,7 +4,7 @@ const { publishExecutionJob } = require('../config/rabbitmq');
 const {
   getPendingSubmissions,
   markQueued
-} = require('../services/submission.service');
+} = require('../../services/submission.service');
 
 async function main() {
   const limit = Number(process.env.REQUEUE_BATCH_SIZE || 100);

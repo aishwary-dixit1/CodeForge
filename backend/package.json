@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "db:init": "node scripts/init-db.js",
-    "requeue:pending": "node scripts/requeue-pending.js"
+    "requeue:pending": "node scripts/requeue-pending.js",
+    "phase2:smoke": "node scripts/phase2-smoke.js"
   },
   "keywords": [],
   "author": "",
