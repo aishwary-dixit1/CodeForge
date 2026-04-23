@@ -1,0 +1,22 @@
+{
+  "name": "codeforge",
+  "version": "1.0.0",
+  "description": "Initial backend scaffold for code execution service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "db:init": "node scripts/init-db.js",
+    "requeue:pending": "node scripts/requeue-pending.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.10.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "pg": "^8.15.6",
+    "uuid": "^11.1.0"
+  }
+}
