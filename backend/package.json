@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:worker": "node scripts/worker.js",
     "db:init": "node scripts/init-db.js",
     "requeue:pending": "node scripts/requeue-pending.js",
     "phase2:smoke": "node scripts/phase2-smoke.js"
@@ -17,6 +18,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
+    "ioredis": "^5.4.2",
     "pg": "^8.15.6",
     "uuid": "^11.1.0"
   }

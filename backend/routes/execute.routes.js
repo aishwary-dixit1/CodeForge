@@ -8,6 +8,7 @@ const {
   enqueueExecutionJob,
   getSubmissionById
 } = require('../services/submission.service');
+const { getCachedExecutionResult } = require('../services/result-cache.service');
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.post(
       .isLength({ max: 50000 })
       .withMessage('Code must be a non-empty string with max length 50000'),
     body('stdin').optional().isString().isLength({ max: 10000 }),
+    body('expected_output').optional().isString().isLength({ max: 50000 }),
     body('timeout_sec').optional().isInt({ min: 1, max: 30 }).toInt()
   ],
   async (req, res) => {
@@ -29,7 +31,13 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { language, code, stdin = '', timeout_sec = 10 } = req.body;
+    const {
+      language,
+      code,
+      stdin = '',
+      expected_output = null,
+      timeout_sec = 10
+    } = req.body;
     const submissionId = uuidv4();
 
     try {
@@ -37,7 +45,8 @@ router.post(
         id: submissionId,
         language,
         code,
-        stdin
+        stdin,
+        expectedOutput: expected_output
       });
 
       await enqueueExecutionJob({
@@ -45,6 +54,7 @@ router.post(
         language,
         code,
         stdin,
+        expectedOutput: expected_output,
         timeoutSec: timeout_sec
       });
 
@@ -69,6 +79,15 @@ router.get(
       return res.status(400).json({ errors: errors.array() });
     }
 
+    const cachedResult = await getCachedExecutionResult(req.params.submissionId);
+    if (cachedResult) {
+      return res.status(200).json({
+        submission_id: req.params.submissionId,
+        source: 'redis',
+        ...cachedResult
+      });
+    }
+
     const submission = await getSubmissionById(req.params.submissionId);
 
     if (!submission) {
@@ -77,12 +96,18 @@ router.get(
 
     return res.status(200).json({
       submission_id: submission.id,
+      source: 'postgres',
       status: submission.status,
       language: submission.language,
       created_at: submission.created_at,
       queued_at: submission.queued_at,
       started_at: submission.started_at,
-      finished_at: submission.finished_at
+      finished_at: submission.finished_at,
+      stdout: submission.stdout,
+      stderr: submission.stderr,
+      exit_code: submission.exit_code,
+      runtime_ms: submission.runtime_ms,
+      expected_output: submission.expected_output
     });
   }
 );
