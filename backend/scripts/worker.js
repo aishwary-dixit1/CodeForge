@@ -21,6 +21,7 @@ const EXECUTION_QUEUE = process.env.EXECUTION_QUEUE || 'execution.queue';
 const RESULT_TTL_SECONDS = Number(process.env.RESULT_TTL_SECONDS || 300);
 const WORKER_HEARTBEAT_SECONDS = Number(process.env.WORKER_HEARTBEAT_SECONDS || 30);
 const MAX_RETRIES = Number(process.env.MAX_RETRIES || 3);
+const WORKER_ID = process.env.WORKER_ID || `worker-${os.hostname()}`;
 
 async function sendToDLQ(job, retryCount, error) {
   try {

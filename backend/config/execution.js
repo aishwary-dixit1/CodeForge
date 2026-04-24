@@ -2,7 +2,8 @@ const EXECUTION_LIMITS = {
   memory: process.env.EXEC_MEMORY_LIMIT || '256m',
   cpus: process.env.EXEC_CPU_LIMIT || '0.5',
   pidsLimit: Number(process.env.EXEC_PIDS_LIMIT || 64),
-  tmpfs: process.env.EXEC_TMPFS || '/tmp:size=32m,noexec,nodev,nosuid'
+  tmpfs: process.env.EXEC_TMPFS || '/tmp:size=32m,noexec,nodev,nosuid',
+  execTmpfs: process.env.EXEC_EXEC_TMPFS || '/exec:size=32m,exec,nodev,nosuid'
 };
 
 const LANGUAGE_CONFIG = {
@@ -24,7 +25,7 @@ const LANGUAGE_CONFIG = {
       String(timeoutSec),
       'sh',
       '-lc',
-      'javac /code/Main.java -d /tmp ; java -cp /tmp Main'
+      'javac /code/Main.java -d /exec ; java -cp /exec Main'
     ]
   },
   cpp20: {
@@ -35,7 +36,7 @@ const LANGUAGE_CONFIG = {
       String(timeoutSec),
       'sh',
       '-lc',
-      'g++ -std=c++20 /code/solution.cpp -O2 -o /tmp/a.out ; /tmp/a.out'
+      'g++ -std=c++20 /code/solution.cpp -O2 -o /exec/a.out ; /exec/a.out'
     ]
   }
 };

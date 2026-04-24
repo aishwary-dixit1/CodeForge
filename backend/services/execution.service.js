@@ -41,6 +41,7 @@ function buildDockerArgs({ submissionId, codeDir, language, timeoutSec }) {
   return [
     'run',
     '--rm',
+    '-i',
     '--name',
     `exec-${submissionId}`,
     '--network',
@@ -54,6 +55,8 @@ function buildDockerArgs({ submissionId, codeDir, language, timeoutSec }) {
     '--read-only',
     '--tmpfs',
     EXECUTION_LIMITS.tmpfs,
+    '--tmpfs',
+    EXECUTION_LIMITS.execTmpfs,
     '-v',
     `${codeDir}:/code:ro`,
     langConfig.image,
