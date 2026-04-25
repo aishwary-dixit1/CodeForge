@@ -29,6 +29,37 @@ CodeForge/
 4. Worker writes result to Redis cache and PostgreSQL.
 5. Frontend polls `GET /execute/:submissionId` until final status.
 
+### High-level architecture
+
+```mermaid
+flowchart LR
+    UI[React Frontend] -->|POST /execute| API[Express API]
+    API -->|INSERT submission| PG[(PostgreSQL)]
+    API -->|publish job| MQ[(RabbitMQ)]
+    W[Worker] -->|consume| MQ
+    W -->|docker run| DR[Runner Images]
+    W -->|cache result| RD[(Redis)]
+    W -->|finalize result| PG
+    UI -->|GET /execute/:id| API
+    API -->|read-through cache| RD
+    API -->|fallback read| PG
+```
+
+### Request flow
+1. Frontend sends `POST /execute`.
+2. API validates request and inserts `PENDING` submission.
+3. API publishes execution job to RabbitMQ and updates submission to `QUEUED`.
+4. Worker consumes message, marks `RUNNING`, executes in Docker, computes verdict.
+5. Worker caches result in Redis and writes final state to PostgreSQL.
+6. Frontend polls `GET /execute/:submissionId` until terminal status.
+
+### Data flow
+- Durable canonical record: PostgreSQL `submissions`
+- Hot read path: Redis hash `exec:result:{submissionId}`
+- Transport: RabbitMQ queue `execution.queue`
+
+---
+
 Core runtime components:
 
 - API server (Express)
